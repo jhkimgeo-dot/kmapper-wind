@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>청라 3차원 도시모델 바람길 분석 · SISTECH</title>
+<meta property="og:title" content="청라 3차원 도시모델 바람길 분석">
+<meta property="og:description" content="사진측량 메시모델의 건물·수목·지형을 그대로 반영한 높이층별 바람길 분석">
+<meta property="og:image" content="preview-pedestrian.png">
+<style>
+  :root { --bg:#0f172a; --card:#111c33; --line:#1f2d4a; --tx:#e2e8f0; --sub:#94a3b8; --ac:#3b82f6; --ac2:#22c55e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif; background:var(--bg); color:var(--tx); line-height:1.65; }
+  .wrap { max-width:980px; margin:0 auto; padding:40px 20px 70px; }
+  h1 { font-size:28px; margin:0 0 6px; }
+  .lead { color:var(--sub); margin:0 0 28px; }
+  .hero { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:28px; }
+  .hero img { width:100%; border-radius:10px; border:1px solid var(--line); display:block; }
+  .hero figcaption { color:var(--sub); font-size:13px; margin-top:4px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:22px 24px; margin-bottom:18px; }
+  .card h2 { font-size:19px; margin:0 0 12px; }
+  .step { display:flex; gap:14px; margin:14px 0; align-items:flex-start; }
+  .num { flex:0 0 30px; height:30px; border-radius:50%; background:var(--ac); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .bm { display:inline-block; padding:11px 20px; border-radius:9px; background:linear-gradient(135deg,#2563eb,#0ea5e9); color:#fff; font-weight:700; text-decoration:none; cursor:grab; box-shadow:0 4px 14px rgba(37,99,235,.4); }
+  .btn { display:inline-block; padding:10px 18px; border-radius:9px; background:var(--ac2); color:#05210f; font-weight:700; text-decoration:none; border:0; cursor:pointer; font-size:15px; font-family:inherit; }
+  .btn.gray { background:#334155; color:var(--tx); }
+  code, pre { font-family:Consolas,'D2Coding',monospace; }
+  pre { background:#020617; border:1px solid var(--line); border-radius:8px; padding:12px 14px; overflow-x:auto; font-size:13px; white-space:pre-wrap; word-break:break-all; margin:8px 0; }
+  .sub { color:var(--sub); font-size:14px; }
+  kbd { background:#1e293b; border:1px solid #334155; border-bottom-width:2px; border-radius:4px; padding:1px 6px; font-size:13px; }
+  ul { margin:6px 0; padding-left:22px; }
+  .ok { color:#4ade80; font-size:14px; margin-left:8px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  td { border-top:1px solid var(--line); padding:7px 6px; vertical-align:top; }
+  td:first-child { color:var(--sub); width:150px; }
+  footer { color:#64748b; font-size:13px; margin-top:30px; text-align:center; }
+  @media (max-width:720px) { .hero { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>청라 3차원 도시모델 바람길 분석</h1>
+  <p class="lead">사진측량 메시모델(건물·수목·지형·수면)을 그대로 반영해 높이층별 바람 흐름과 바람길 등급을 계산합니다. 실시간 기상 자료를 자동으로 불러옵니다.</p>
+
+  <div class="hero">
+    <figure style="margin:0"><img src="preview-pedestrian.png" alt="보행자 높이 풍속 분석 결과"><figcaption>보행자 높이(1.5m) 풍속비 색상면과 바람 입자</figcaption></figure>
+    <figure style="margin:0"><img src="preview-morph.png" alt="바람길 형태 지표"><figcaption>50m 구획별 바람길 등급(거칠기 길이 기준)</figcaption></figure>
+  </div>
+
+  <div class="card">
+    <h2>사용 방법 (PC 크롬·엣지 기준, 처음 한 번만 설정)</h2>
+    <div class="step"><div class="num">1</div><div>
+      아래 파란 버튼을 마우스로 끌어 브라우저 <b>북마크바</b>에 놓으세요.<br>
+      <span class="sub">북마크바가 안 보이면 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> 를 누르세요.</span><br><br>
+      <a class="bm" id="bm" href="#" title="이 버튼을 북마크바로 끌어다 놓으세요">바람길 분석 켜기</a>
+      <span class="sub" style="margin-left:10px">← 클릭하지 말고 끌어다 놓기</span>
+    </div></div>
+    <div class="step"><div class="num">2</div><div>
+      청라 3차원 모델 뷰어를 여세요.<br><br>
+      <a class="btn" href="https://map.kmapper.sistech3d.com/CHEONGNA_01/App/?scene=CHEONGNA_OLD_CAMERA_HIGHPOINT_TIEPOINT&cX=-926.6237&cY=742.1387&cZ=674.1001&upX=0.0000&upY=0.0000&upZ=1.0000&tX=-80.3717&tY=264.5702&tZ=-57.5930" target="_blank" rel="noopener">청라 3차원 모델 뷰어 열기</a>
+    </div></div>
+    <div class="step"><div class="num">3</div><div>
+      모델이 보이면 북마크바의 <b>[바람길 분석 켜기]</b>를 누르세요. 화면 왼쪽에 바람길 분석 메뉴가 나타납니다.<br>
+      <b>분석</b> 메뉴 → 범위·높이층 선택 → <b>분석 시작</b> (약 1~2분 소요)
+    </div></div>
+  </div>
+
+  <div class="card">
+    <h2>북마크로 끌어 놓기가 안 될 때</h2>
+    <p class="sub" style="margin-top:0">방법 A. 북마크를 직접 만들기: 북마크바에서 오른쪽 클릭 → <b>페이지 추가</b> → 이름은 "바람길 분석 켜기", 주소(URL)에 아래 코드를 붙여 넣기</p>
+    <pre id="bmcode"></pre>
+    <button class="btn gray" data-copy="bmcode">북마크 코드 복사</button><span class="ok" id="ok-bmcode"></span>
+    <p class="sub" style="margin-top:18px">방법 B. 개발자 도구 사용: 뷰어에서 <kbd>F12</kbd> → <b>Console(콘솔)</b> 탭에 아래 한 줄을 붙여 넣고 <kbd>Enter</kbd></p>
+    <pre id="concode"></pre>
+    <button class="btn gray" data-copy="concode">콘솔 코드 복사</button><span class="ok" id="ok-concode"></span>
+  </div>
+
+  <div class="card">
+    <h2>주요 기능</h2>
+    <table>
+      <tr><td>기상</td><td>오픈메테오 실시간 바람(10분 갱신) 또는 24시간 예보 시각 선택, 직접 풍향·풍속 지정</td></tr>
+      <tr><td>분석 범위</td><td>화면 중심 300m~1.2km 정사각형 또는 3D 모델 위에 직접 그린 영역</td></tr>
+      <tr><td>높이층</td><td>1.5m(보행자)·10m·30m·60m·100m 중 여러 개 동시 계산. 각 높이에서 실제 메시 단면으로 건물·수목 판정</td></tr>
+      <tr><td>계산</td><td>높이층별 2차원 격자 볼츠만 흐름 계산(난류 모형, 상층 공기 혼합 반영), 수목은 일부 통과(항력)로 처리, 호수·수로 자동 인식</td></tr>
+      <tr><td>결과 표시</td><td>풍속비 색상면, 흐르는 바람 입자, 마우스 지점 풍속·풍향, 정체·약풍·양호·강풍 면적 통계</td></tr>
+      <tr><td>형태 지표</td><td>구획별 건폐율·전면적 지수·거칠기 길이(Macdonald 식)로 바람길 4등급 지도</td></tr>
+      <tr><td>저장</td><td>결과 표(CSV), 화면 이미지(PNG)</td></tr>
+    </table>
+    <p class="sub" style="margin-bottom:0">참고: 위에서 내려다본 높이 지도 기반 근사 해석이라 다리·필로티 아래 흐름은 표현되지 않으며, 정밀 전산유체해석(CFD)을 대신하지는 않습니다.</p>
+  </div>
+
+  <div class="card">
+    <h2>운영자용: 북마크 없이 바로 켜지게 하기</h2>
+    <p class="sub" style="margin-top:0">뷰어 서버의 <code>CHEONGNA_01/App/index.html</code> 의 <code>&lt;head&gt;</code> 안에 아래 한 줄을 추가하면, 뷰어 주소만 공유해도 모든 사용자에게 바람길 분석 메뉴가 자동으로 나타납니다.</p>
+    <pre id="tagcode"></pre>
+    <button class="btn gray" data-copy="tagcode">한 줄 복사</button><span class="ok" id="ok-tagcode"></span>
+  </div>
+
+  <footer>SISTECH · 3차원 도시모델 바람길 분석 v1.1 · 모델 데이터는 map.kmapper.sistech3d.com 에서 직접 불러옵니다</footer>
+</div>
+<script>
+  var base = location.href.replace(/[#?].*$/, '').replace(/[^/]*$/, '');
+  var js = base + 'kmapper-wind-mesh.js';
+  var bm = "javascript:(function(){if(!/kmapper\\.sistech3d\\.com/.test(location.host)){alert('청라 3차원 모델 뷰어(map.kmapper.sistech3d.com) 화면에서 눌러 주세요.');return;}var s=document.createElement('script');s.charset='utf-8';s.src='" + js + "?t='+Date.now();document.body.appendChild(s);})();";
+  document.getElementById('bm').setAttribute('href', bm);
+  document.getElementById('bm').addEventListener('click', function (e) { e.preventDefault(); alert('클릭하지 말고, 이 버튼을 북마크바로 끌어다 놓으세요.\n(북마크바 표시: Ctrl+Shift+B)'); });
+  document.getElementById('bmcode').textContent = bm;
+  document.getElementById('concode').textContent = "var s=document.createElement('script');s.charset='utf-8';s.src='" + js + "?t='+Date.now();document.body.appendChild(s);";
+  document.getElementById('tagcode').textContent = '<script src="' + js + '" charset="utf-8" defer><\/script>'.replace('<\\/', '</');
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.getAttribute('data-copy'), t = document.getElementById(id).textContent;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { document.getElementById('ok-' + id).textContent = '복사됨'; }, function () {
+        var r = document.createRange(); r.selectNodeContents(document.getElementById(id)); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy'); document.getElementById('ok-' + id).textContent = '복사됨'; });
+    });
+  });
+</script>
+</body>
+</html>

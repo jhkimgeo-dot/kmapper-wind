@@ -1,0 +1,31 @@
+{
+ "x0": -860,
+ "y0": -970,
+ "w": 1600,
+ "h": 2080,
+ "pw": 2048,
+ "ph": 2660,
+ "zMin": -30,
+ "zRng": 320,
+ "origin": [
+  291127,
+  4156691,
+  0
+ ],
+ "srs": "PROJCS[\"WGS 84 / UTM zone 52N\",GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"EPSG\",\"4326\"]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",129],PARAMETER[\"scale_factor\",0.9996],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH],AUTHORITY[\"EPSG\",\"32652\"]]",
+ "initCam": {
+  "pos": [
+   -926.6,
+   742.1,
+   674.1
+  ],
+  "target": [
+   -80.4,
+   264.6,
+   5
+  ]
+ },
+ "captured": "2026-10-14",
+ "source": "https://map.kmapper.sistech3d.com/CHEONGNA_01/ (CHEONGNA_OLD_CAMERA_HIGHPOINT_TIEPOINT)",
+ "ver": "1.1"
+}

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>청라 3차원 도시모델 바람길 분석 · SISTECH</title>
+<meta property="og:title" content="청라 3차원 도시모델 바람길 분석">
+<meta property="og:description" content="사진측량 메시모델 기반 높이층별 바람길 분석 (링크로 바로 열림)">
+<meta property="og:image" content="../preview-pedestrian.png">
+<style>
+  html, body { margin:0; height:100%; overflow:hidden; background:#8d949c; font-family:'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif; }
+  #bar { position:fixed; left:0; right:0; top:0; height:44px; z-index:9500; background:#3a3f45; color:#fff; display:flex; align-items:center; padding:0 14px; gap:14px; box-shadow:0 1px 4px rgba(0,0,0,.35); }
+  #bar .t { font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #bar .s { color:#b8c2cc; font-size:12px; white-space:nowrap; }
+  #bar .sp { flex:1; }
+  #bar a, #bar button { color:#dbe7f5; font-size:12.5px; text-decoration:none; background:#4a525b; border:1px solid #5d6772; border-radius:6px; padding:5px 10px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  #bar a:hover, #bar button:hover { background:#58626d; }
+  #view { position:fixed; left:0; right:0; top:44px; bottom:0; }
+  #view canvas { display:block; }
+  #load { position:fixed; inset:0; z-index:9900; background:#1b2330; color:#e6edf6; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+  #load .bx { width:min(420px, 80vw); height:8px; border-radius:4px; background:#2c3a4d; overflow:hidden; }
+  #load .bx i { display:block; height:100%; width:0; background:linear-gradient(90deg,#2563eb,#0ea5e9); transition:width .2s; }
+  #load .m { font-size:14px; color:#9fb3c8; }
+  #about { position:fixed; right:14px; top:54px; width:min(380px, calc(100vw - 28px)); z-index:9600; background:rgba(18,24,34,.95); color:#e6edf6; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:14px 16px; font-size:13px; line-height:1.6; display:none; box-shadow:0 8px 30px rgba(0,0,0,.4); }
+  #about h4 { margin:0 0 8px; font-size:14px; }
+  #about .x { float:right; cursor:pointer; color:#8b98a9; }
+  #about ul { margin:6px 0; padding-left:18px; }
+  #brand { position:fixed; left:12px; bottom:10px; z-index:8000; color:#fff; font-weight:800; font-size:13px; letter-spacing:.5px; text-shadow:0 1px 3px rgba(0,0,0,.6); pointer-events:none; }
+  @media (max-width:700px) { #bar .s { display:none; } }
+</style>
+</head>
+<body>
+<div id="bar">
+  <span class="t">청라 3차원 도시모델 바람길 분석</span>
+  <span class="s" id="dinfo"></span>
+  <span class="sp"></span>
+  <button id="btn-wind" style="display:none">바람길 분석 켜기</button>
+  <button id="btn-about">이 페이지 안내</button>
+  <a href="../" target="_blank" rel="noopener">원본 메시 뷰어에서 쓰기</a>
+</div>
+<div id="view"></div>
+<div id="brand">SISTECH</div>
+<div id="about">
+  <span class="x" id="about-x">✕</span>
+  <h4>이 페이지 안내</h4>
+  설치 없이 링크만으로 바람길 분석을 확인할 수 있는 독립 페이지입니다.
+  <ul>
+    <li>청라 사진측량 메시모델(map.kmapper.sistech3d.com)을 위에서 내려다본 <b>높이 지도(약 0.8m 간격)와 정사영상</b>으로 변환해 담았습니다.</li>
+    <li>왼쪽 메뉴의 <b>분석 → 분석 시작</b>으로 원본 뷰어와 같은 계산(높이층별 흐름 계산, 건물·수목·수면 판정, 바람길 형태 지표)을 실시간 바람으로 다시 돌릴 수 있습니다.</li>
+    <li>마우스: 왼쪽 끌기 회전, 오른쪽 끌기 이동, 휠 확대·축소 (휴대폰: 한 손가락 회전, 두 손가락 확대·이동)</li>
+  </ul>
+  <span style="color:#9fb3c8">높이 지도 기반 입체라 건물 벽면은 단순화되어 보이며, 원본 메시의 세밀한 모습은 [원본 메시 뷰어에서 쓰기]를 이용하세요.</span>
+</div>
+<div id="load"><div style="font-size:18px;font-weight:700">청라 3차원 도시모델 불러오는 중</div><div class="bx"><i id="lbar"></i></div><div class="m" id="lmsg">준비 중</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r69/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+<script>
+(async function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const setLoad = (f, m) => { $('lbar').style.width = Math.round(f * 100) + '%'; if (m) $('lmsg').textContent = m; };
+  $('btn-about').onclick = () => { const a = $('about'); a.style.display = a.style.display === 'block' ? 'none' : 'block'; };
+  $('about-x').onclick = () => { $('about').style.display = 'none'; };
+
+  try {
+    // ---------- 데이터 ----------
+    setLoad(0.03, '모델 정보 불러오는 중');
+    const meta = await (await fetch('data/meta.json')).json();
+    async function loadImg(url, lo, hi, label) {
+      const r = await fetch(url);
+      const total = +r.headers.get('content-length') || 0; const reader = r.body.getReader(); const chunks = []; let got = 0;
+      while (true) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); got += value.length; if (total) setLoad(lo + (hi - lo) * got / total, label + ` (${(got / 1048576).toFixed(1)}MB)`); }
+      const blob = new Blob(chunks);
+      return await createImageBitmap(blob, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+    }
+    const hImg = await loadImg('data/height.png', 0.05, 0.45, '높이 지도 내려받는 중');
+    const cImg = await loadImg('data/color.jpg', 0.45, 0.8, '항공 정사영상 내려받는 중');
+    setLoad(0.82, '3차원 지형 만드는 중');
+    await new Promise(r => setTimeout(r, 30));
+    const W = meta.pw, H = meta.ph; // 픽셀 수 (행 0 = 북쪽)
+    const hc = document.createElement('canvas'); hc.width = W; hc.height = H;
+    const hctx = hc.getContext('2d', { willReadFrequently: true }); hctx.drawImage(hImg, 0, 0);
+    const hd = hctx.getImageData(0, 0, W, H).data;
+    const Z = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) Z[i] = hd[i * 4 + 2] > 128 ? meta.zMin + (hd[i * 4] + hd[i * 4 + 1] / 255) / 255 * meta.zRng : NaN;
+
+    // ---------- 장면 ----------
+    const view = $('view');
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, devicePixelRatio: dpr });
+    renderer.setClearColor(0x8d949c, 1);
+    view.appendChild(renderer.domElement);
+    const scene = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(45, 1, 1, 30000);
+    cam.up.set(0, 0, 1);
+    const ip = meta.initCam;
+    cam.position.set(ip.pos[0], ip.pos[1], ip.pos[2]);
+    const controls = new THREE.OrbitControls(cam, renderer.domElement);
+    controls.target.set(ip.target[0], ip.target[1], ip.target[2]);
+    controls.maxPolarAngle = Math.PI * 0.495; controls.minDistance = 30; controls.maxDistance = 6000;
+    controls.zoomSpeed = 1.2; controls.update();
+    function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+    window.addEventListener('resize', resize); resize();
+
+    // 뷰어 엔진 흉내 (바람길 분석 스크립트가 찾는 구조)
+    function Ac3dROOT() { THREE.Object3D.call(this); this.downloadQueue = []; this.SRS = meta.srs; this.SRSOrigin = meta.origin; this.loaded = false; }
+    Ac3dROOT.prototype = Object.create(THREE.Object3D.prototype);
+    Ac3dROOT.prototype.constructor = Ac3dROOT;
+    Ac3dROOT.prototype.updateLODTree = function () { };
+    Ac3dROOT.prototype.isSceneLoaded = function () { return this.loaded; };
+    Ac3dROOT.prototype.getSRS = function () { return this.SRS; };
+    Ac3dROOT.prototype.getSRSOrigin = function () { return this.SRSOrigin; };
+    window.AC3D = { Ac3dROOT, toProcessGeometries: [], toProcessImages: [] };
+    window.acute3d = { page: { OrbitControls: THREE.OrbitControls } };
+    const root = new Ac3dROOT();
+    root.ui = { camera: cam, renderer: renderer, controls: controls, updateCanvas: function () { } };
+    scene.add(root);
+
+    // 지형 메시 (2픽셀 간격 격자, 129x129 정점 조각)
+    const tex = new THREE.Texture(cImg);
+    tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.needsUpdate = true;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+    const STEP = 2, CH = 128;
+    const gw = Math.floor((W - 1) / STEP) + 1, gh = Math.floor((H - 1) / STEP) + 1;
+    const px = meta.w / W, py = meta.h / H;
+    const zAt = (gx, gy) => { const x = Math.min(W - 1, gx * STEP), y = Math.min(H - 1, gy * STEP); return Z[y * W + x]; };
+    let nTri = 0, nMesh = 0;
+    for (let ty = 0; ty < gh - 1; ty += CH) for (let tx = 0; tx < gw - 1; tx += CH) {
+      const nx = Math.min(CH, gw - 1 - tx) + 1, ny = Math.min(CH, gh - 1 - ty) + 1;
+      const pos = new Float32Array(nx * ny * 3), uv = new Float32Array(nx * ny * 2), ok = new Uint8Array(nx * ny);
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+        const gx = tx + i, gy = ty + j, k = j * nx + i;
+        const xpix = Math.min(W - 1, gx * STEP), ypix = Math.min(H - 1, gy * STEP);
+        const z = zAt(gx, gy);
+        pos[k * 3] = meta.x0 + (xpix + 0.5) * px; pos[k * 3 + 1] = meta.y0 + meta.h - (ypix + 0.5) * py; pos[k * 3 + 2] = isNaN(z) ? 0 : z;
+        uv[k * 2] = (xpix + 0.5) / W; uv[k * 2 + 1] = 1 - (ypix + 0.5) / H;
+        ok[k] = isNaN(z) ? 0 : 1;
+      }
+      const idx = [];
+      for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+        const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+        if (ok[a] && ok[c] && ok[b]) idx.push(a, c, b);
+        if (ok[b] && ok[c] && ok[d]) idx.push(b, c, d);
+      }
+      if (!idx.length) continue;
+      const g = new THREE.BufferGeometry();
+      g.addAttribute('index', new THREE.BufferAttribute(new Uint16Array(idx), 1));
+      g.addAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.addAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      g.offsets = g.drawcalls = [{ start: 0, count: idx.length, index: 0 }];
+      g.computeBoundingSphere(); g.computeBoundingBox();
+      const m = new THREE.Mesh(g, mat); m.matrixAutoUpdate = false; m.updateMatrixWorld(true);
+      root.add(m); nTri += idx.length / 3; nMesh++;
+    }
+    scene.updateMatrixWorld(true);
+    root.loaded = true;
+    $('dinfo').textContent = `${Math.round(meta.w)}m × ${Math.round(meta.h)}m · 높이 간격 ${(meta.w / W).toFixed(2)}m · 캡처 ${meta.captured}`;
+
+    // 렌더 반복 (뷰어처럼 매 프레임 LOD 갱신 함수를 호출)
+    (function loop() {
+      requestAnimationFrame(loop);
+      controls.update();
+      root.updateLODTree();
+      renderer.render(scene, cam);
+    })();
+    setLoad(0.92, '바람길 분석 기능 불러오는 중');
+
+    // ---------- 바람길 분석 스크립트 ----------
+    function loadWind() {
+      return new Promise((res, rej) => { const s = document.createElement('script'); s.charset = 'utf-8'; s.src = '../kmapper-wind-mesh.js?v=' + (meta.ver || '1'); s.onload = res; s.onerror = rej; document.body.appendChild(s); });
+    }
+    await loadWind();
+    for (let i = 0; i < 80 && !window.__kmWind; i++) await new Promise(r => setTimeout(r, 250));
+    setLoad(1, '완료');
+    $('load').style.display = 'none';
+    // [끄기] 후 다시 켜기 버튼
+    setInterval(() => { $('btn-wind').style.display = document.getElementById('kmw-rail') ? 'none' : ''; }, 1000);
+    $('btn-wind').onclick = () => { loadWind(); };
+    window.__standalone = { scene, cam, renderer, controls, root, meta, nTri, nMesh };
+  } catch (e) {
+    console.error(e);
+    $('lmsg').textContent = '불러오기 실패: ' + (e && e.message ? e.message : e) + ' (새로고침해 보세요. 최신 크롬·엣지·사파리에서 열어 주세요.)';
+    $('lmsg').style.color = '#fca5a5';
+  }
+})();
+</script>
+</body>
+</html>

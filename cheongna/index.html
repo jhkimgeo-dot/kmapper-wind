@@ -122,7 +122,13 @@
     const tex = new THREE.Texture(cImg);
     tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
     tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.needsUpdate = true;
-    const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+    // 지붕·지면은 정사영상, 가파른 벽면은 햇빛 음영 + 층 구분선이 있는 외벽색으로 표시 (영상이 세로로 늘어지는 것 방지)
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { map: { type: 't', value: tex }, sun: { type: 'v3', value: new THREE.Vector3(-0.45, -0.55, 0.7).normalize() } },
+      vertexShader: 'varying vec2 vUv; varying vec3 vN; varying float vZ; void main(){ vUv = uv; vN = normalize(normal); vec4 w = modelMatrix * vec4(position,1.0); vZ = w.z; gl_Position = projectionMatrix * viewMatrix * w; }',
+      fragmentShader: 'uniform sampler2D map; uniform vec3 sun; varying vec2 vUv; varying vec3 vN; varying float vZ; void main(){ vec3 t = texture2D(map, vUv).rgb; vec3 n = normalize(vN); float wall = smoothstep(0.45, 0.8, 1.0 - abs(n.z)); float lam = max(dot(n, sun), 0.0); vec3 fac = vec3(0.80, 0.79, 0.76) * (0.50 + 0.55 * lam); float fl = smoothstep(0.0, 0.12, abs(fract(vZ / 2.9) - 0.5) * 2.0); fac *= mix(0.86, 1.0, fl); vec3 roof = t * (0.92 + 0.12 * lam); gl_FragColor = vec4(mix(roof, fac, wall), 1.0); }',
+      side: THREE.DoubleSide
+    });
     const STEP = 2, CH = 128;
     const gw = Math.floor((W - 1) / STEP) + 1, gh = Math.floor((H - 1) / STEP) + 1;
     const px = meta.w / W, py = meta.h / H;
@@ -151,6 +157,7 @@
       g.addAttribute('position', new THREE.BufferAttribute(pos, 3));
       g.addAttribute('uv', new THREE.BufferAttribute(uv, 2));
       g.offsets = g.drawcalls = [{ start: 0, count: idx.length, index: 0 }];
+      g.computeVertexNormals();
       g.computeBoundingSphere(); g.computeBoundingBox();
       const m = new THREE.Mesh(g, mat); m.matrixAutoUpdate = false; m.updateMatrixWorld(true);
       root.add(m); nTri += idx.length / 3; nMesh++;
